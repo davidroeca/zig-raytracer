@@ -3,4 +3,7 @@
 set -euo pipefail
 
 OUTPUT_DIR=output
-mkdir -p "${OUTPUT_DIR}" && zig build main
+RGB_FILE="${OUTPUT_DIR}/main.ppm"
+
+mkdir -p "${OUTPUT_DIR}" && zig build main > "${RGB_FILE}"
+echo "Success! Open ${RGB_FILE} to view output."
