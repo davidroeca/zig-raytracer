@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -euo pipefail
+
+OUTPUT_DIR=output
+mkdir -p "${OUTPUT_DIR}" && zig build main
