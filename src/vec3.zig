@@ -50,5 +50,58 @@ pub const Vec3 = struct {
     }
 };
 
+test "Vec3 addition" {
+    const a = Vec3.init(1, 2, 3);
+    const b = Vec3.init(4, 5, 6);
+    const result = a.add(b);
+
+    try std.testing.expectEqual(5, result.x);
+    try std.testing.expectEqual(7, result.y);
+    try std.testing.expectEqual(9, result.z);
+}
+
+test "Vec3 subtraction" {
+    const a = Vec3.init(1, 2, 3);
+    const b = Vec3.init(4, 5, 6);
+    const result = a.sub(b);
+
+    try std.testing.expectEqual(-3, result.x);
+    try std.testing.expectEqual(-3, result.y);
+    try std.testing.expectEqual(-3, result.z);
+}
+
+test "Vec3 multiplication" {
+    const a = Vec3.init(1, 2, 3);
+    const result = a.mul(7);
+
+    try std.testing.expectEqual(7, result.x);
+    try std.testing.expectEqual(14, result.y);
+    try std.testing.expectEqual(21, result.z);
+}
+
+test "Vec3 dot product" {
+    const a = Vec3.init(1, 2, 3);
+    const b = Vec3.init(4, 5, 6);
+    const result = a.dot(b);
+
+    try std.testing.expectEqual(32, result);
+}
+
+test "Vec3 length" {
+    const a = Vec3.init(1, 2, 3);
+    const result = a.length();
+    const tolerance = 0.00001;
+    try std.testing.expectApproxEqAbs(3.74165739, result, tolerance);
+}
+
+test "Vec3 unit vector" {
+    const a = Vec3.init(1, 2, 3);
+    const result = a.unitVector();
+    const tolerance = 0.00001;
+    try std.testing.expectApproxEqAbs(0.26726124, result.x, tolerance);
+    try std.testing.expectApproxEqAbs(0.53452248, result.y, tolerance);
+    try std.testing.expectApproxEqAbs(0.80178373, result.z, tolerance);
+}
+
 pub const Point3 = Vec3;
 pub const Color = Vec3;
