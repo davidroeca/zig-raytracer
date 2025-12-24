@@ -8,6 +8,7 @@ const Ray = ray.Ray;
 const hittable = @import("./hittable.zig");
 const Sphere = hittable.Sphere;
 const HitRecord = hittable.HitRecord;
+const World = hittable.World;
 
 fn hsvToRgb(h: f64, s: f64, v: f64) Color {
     // All values must be in [0, 1]
@@ -40,9 +41,8 @@ fn hitSphere(center: Point3, radius: f64, ray_: Ray) ?HitRecord {
     return sphere.hit(ray_);
 }
 
-fn rayColor(ray_: Ray) Color {
-    const sphere_center = Point3.init(0, 0, -1);
-    const opt_hit = hitSphere(sphere_center, 0.5, ray_);
+fn rayColor(world: World, ray_: Ray) Color {
+    const opt_hit = world.hit(ray_);
     if (opt_hit) |hit| {
         return hit.color;
     }
@@ -93,6 +93,22 @@ pub fn main() !void {
 
     try stdout.print("P3\n{d} {d}\n255\n", .{ image_width, image_height });
 
+    // initialize allocator
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    // initialize spheres
+    var spheres: std.ArrayList(Sphere) = .{};
+    defer spheres.deinit(allocator);
+
+    // add spheres to world
+    var world = World.init(spheres, allocator);
+    try world.add_sphere(Sphere.init(Point3.init(0.0, 0.0, -4.0), 1));
+    try world.add_sphere(Sphere.init(Point3.init(-2, 0.6, -3.5), 0.3));
+    try world.add_sphere(Sphere.init(Point3.init(2, -0.6, -3.25), 0.3));
+    try world.add_sphere(Sphere.init(Point3.init(1.5, 1.5, -4.0), 0.3));
+
     var y: u32 = 0;
     while (y < image_height) : (y += 1) {
         var x: u32 = 0;
@@ -102,7 +118,7 @@ pub fn main() !void {
                 .add(pixel_delta_v.mul(@as(f64, @floatFromInt(y))));
             const ray_direction = pixel_center.sub(camera_position);
             const pixel_ray = Ray.init(camera_position, ray_direction);
-            const color = rayColor(pixel_ray);
+            const color = rayColor(world, pixel_ray);
             try writeColor(stdout, color);
         }
     }

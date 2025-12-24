@@ -63,3 +63,32 @@ pub const Sphere = struct {
         return HitRecord.init(t, point, normal, color);
     }
 };
+
+pub const World = struct {
+    spheres: std.ArrayList(Sphere),
+    allocator: std.mem.Allocator,
+
+    pub fn init(spheres: std.ArrayList(Sphere), allocator: std.mem.Allocator) @This() {
+        return @This(){
+            .spheres = spheres,
+            .allocator = allocator,
+        };
+    }
+
+    pub fn add_sphere(self: *@This(), sphere: Sphere) !void {
+        try self.spheres.append(self.allocator, sphere);
+    }
+
+    pub fn hit(self: @This(), ray_: Ray) ?HitRecord {
+        var result: ?HitRecord = null;
+        for (self.spheres.items) |item| {
+            const cur_opt_hit = item.hit(ray_);
+            if (cur_opt_hit) |cur_hit| {
+                if (result == null or result.?.t > cur_hit.t) {
+                    result = cur_hit;
+                }
+            }
+        }
+        return result;
+    }
+};
