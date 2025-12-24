@@ -1,9 +1,0 @@
-#!/bin/bash
-
-set -euo pipefail
-
-OUTPUT_DIR=output
-RGB_FILE="${OUTPUT_DIR}/rgb.ppm"
-
-mkdir -p "${OUTPUT_DIR}" && zig build rgbppm > "${RGB_FILE}"
-echo "Success! Open ${RGB_FILE} to view output."

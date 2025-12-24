@@ -2,6 +2,6 @@
 
 This repo aims to build up to a raytracer with zig.
 
-## rgbppm
+## Running the code
 
-Run `./run-rgbppm` to output a ppm file that produces a gradient.
+Run `./run-main` to output the ppm file
