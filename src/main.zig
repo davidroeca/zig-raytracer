@@ -32,9 +32,37 @@ fn hsvToRgb(h: f64, s: f64, v: f64) Color {
     }
 }
 
-fn rayColor(r: Ray) Color {
-    // rainbot spiral
-    const unit_direction = r.direction.unitVector();
+fn hitSphere(center: Point3, radius: f64, ray_: Ray) f64 {
+    const dir = ray_.direction;
+    // intermediate variables to get distance between origin and sphere center
+    // used in quadratic variable c
+    const origin_to_center = ray_.origin.sub(center);
+    // --- quadriatic equaiton variables
+    const a = dir.dot(dir);
+    const b = 2 * dir.dot(ray_.origin.sub(center));
+    const c = origin_to_center.dot(origin_to_center) - radius * radius;
+    // --- end quadratic equation variables
+
+    const radical_part = b * b - 4.0 * a * c;
+    if (radical_part < 0.0) {
+        return -1.0;
+    }
+    const sqrt_rad = std.math.sqrt(radical_part);
+
+    const result = (-b - sqrt_rad) / (2.0 * a);
+    if (result < 0.0) {
+        return -1.0;
+    }
+    return result;
+}
+
+fn rayColor(ray_: Ray) Color {
+    const sphere_hit = hitSphere(Point3.init(0, 0, -1), 0.5, ray_);
+    if (sphere_hit >= 0) {
+        return Color.init(1.0, 0.0, 0.0);
+    }
+    // rainbow spiral
+    const unit_direction = ray_.direction.unitVector();
     const normalized_angle = std.math.atan2(unit_direction.y, unit_direction.x) + std.math.pi;
     // [0, 1]
     const hue = normalized_angle / (2.0 * std.math.pi);
@@ -76,7 +104,7 @@ pub fn main() !void {
         .sub(Vec3.init(0.0, 0.0, focal_length))
         .sub(viewport_u.mul(0.5))
         .sub(viewport_v.mul(0.5));
-    const first_pixel = viewport_top_left.add(pixel_delta_u).add(pixel_delta_v).mul(0.5);
+    const first_pixel = viewport_top_left.add(pixel_delta_u.mul(0.5)).add(pixel_delta_v.mul(0.5));
 
     try stdout.print("P3\n{d} {d}\n255\n", .{ image_width, image_height });
 
