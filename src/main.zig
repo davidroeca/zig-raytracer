@@ -32,7 +32,7 @@ fn hsvToRgb(h: f64, s: f64, v: f64) Color {
     }
 }
 
-fn hitSphere(center: Point3, radius: f64, ray_: Ray) f64 {
+fn hitSphere(center: Point3, radius: f64, ray_: Ray) ?Point3 {
     const dir = ray_.direction;
     // intermediate variables to get distance between origin and sphere center
     // used in quadratic variable c
@@ -45,21 +45,25 @@ fn hitSphere(center: Point3, radius: f64, ray_: Ray) f64 {
 
     const radical_part = b * b - 4.0 * a * c;
     if (radical_part < 0.0) {
-        return -1.0;
+        return null;
     }
     const sqrt_rad = std.math.sqrt(radical_part);
 
-    const result = (-b - sqrt_rad) / (2.0 * a);
-    if (result < 0.0) {
-        return -1.0;
+    const t = (-b - sqrt_rad) / (2.0 * a);
+    if (t < 0.0) {
+        return null;
     }
-    return result;
+    return ray_.origin.add(ray_.direction.mul(t));
 }
 
 fn rayColor(ray_: Ray) Color {
-    const sphere_hit = hitSphere(Point3.init(0, 0, -1), 0.5, ray_);
-    if (sphere_hit >= 0) {
-        return Color.init(1.0, 0.0, 0.0);
+    const sphere_center = Point3.init(0, 0, -1);
+    const opt_sphere_hit = hitSphere(sphere_center, 0.5, ray_);
+    if (opt_sphere_hit) |sphere_hit| {
+        const normal_hit = sphere_hit.sub(sphere_center).unitVector();
+        // alter domain from [-1, 1] to [0, 1]
+        const map_normal = normal_hit.add(Point3.init(1.0, 1.0, 1.0)).mul(0.5);
+        return Color.init(map_normal.x, map_normal.y, map_normal.z);
     }
     // rainbow spiral
     const unit_direction = ray_.direction.unitVector();
