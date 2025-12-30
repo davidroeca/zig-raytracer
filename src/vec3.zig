@@ -21,11 +21,19 @@ pub const Vec3 = struct {
     }
 
     pub fn add(self: @This(), other: @This()) @This() {
-        return @This().init(self.x + other.x, self.y + other.y, self.z + other.z);
+        return @This().init(
+            self.x + other.x,
+            self.y + other.y,
+            self.z + other.z,
+        );
     }
 
     pub fn sub(self: @This(), other: @This()) @This() {
-        return @This().init(self.x - other.x, self.y - other.y, self.z - other.z);
+        return @This().init(
+            self.x - other.x,
+            self.y - other.y,
+            self.z - other.z,
+        );
     }
 
     pub fn mul(self: @This(), scalar: f64) @This() {
@@ -34,6 +42,14 @@ pub const Vec3 = struct {
 
     pub fn dot(self: @This(), other: @This()) f64 {
         return self.x * other.x + self.y * other.y + self.z * other.z;
+    }
+
+    pub fn cross(self: @This(), other: @This()) @This() {
+        return @This().init(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        );
     }
 
     pub fn length(self: @This()) f64 {
@@ -99,6 +115,16 @@ test "Vec3 dot product" {
     try std.testing.expectEqual(32, result);
 }
 
+test "Vec3 cross product" {
+    const a = Vec3.init(2, 3, 4);
+    const b = Vec3.init(5, 6, 7);
+    const result = a.cross(b);
+
+    try std.testing.expectEqual(-3, result.x);
+    try std.testing.expectEqual(6, result.y);
+    try std.testing.expectEqual(-3, result.z);
+}
+
 test "Vec3 length" {
     const a = Vec3.init(1, 2, 3);
     const result = a.length();
@@ -116,10 +142,10 @@ test "Vec3 unit vector" {
 }
 
 test "randomUnitVector" {
-    const prng = std.Random.DefaultPrng;
-    const rand = prng.random();
-    const my_unit = randomUnitVector(rand);
-    const my_unit2 = randomUnitVector(rand);
+    var prng = std.Random.DefaultPrng.init(420);
+    const rng = prng.random();
+    const my_unit = randomUnitVector(rng);
+    const my_unit2 = randomUnitVector(rng);
     const tolerance = 0.00001;
     try std.testing.expectApproxEqAbs(1.0, my_unit.length(), tolerance);
     try std.testing.expectApproxEqAbs(1.0, my_unit2.length(), tolerance);
