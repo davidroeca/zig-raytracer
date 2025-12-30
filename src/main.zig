@@ -3,6 +3,8 @@ const vec3 = @import("./vec3.zig");
 const Vec3 = vec3.Vec3;
 const Point3 = vec3.Point3;
 const Color = vec3.Color;
+const mat = @import("./material.zig");
+const Material = mat.Material;
 const ray = @import("./ray.zig");
 const Ray = ray.Ray;
 const hittable = @import("./hittable.zig");
@@ -49,10 +51,21 @@ fn rayColor(world: World, ray_: Ray, depth: u8, rng: std.Random) Color {
     }
     const opt_hit = world.hit(ray_);
     if (opt_hit) |hit| {
-        const new_ray_vec = hit.normal.add(vec3.randomUnitVector(rng));
-        const new_ray_origin = hit.point.add(hit.normal.mul(0.001));
-        const bounced = Ray.init(new_ray_origin, new_ray_vec);
-        return rayColor(world, bounced, depth + 1, rng).mul(0.7);
+        if (hit.material.scatter(ray_, hit, rng)) |scatter| {
+            const incoming_color = rayColor(
+                world,
+                scatter.scattered,
+                depth + 1,
+                rng,
+            );
+            return Color.init(
+                incoming_color.x * scatter.attenuation.x,
+                incoming_color.y * scatter.attenuation.y,
+                incoming_color.z * scatter.attenuation.z,
+            );
+        }
+        // Color completely absorbed
+        return Color.init(0.0, 0.0, 0.0);
     }
     // rainbow spiral
     const unit_direction = ray_.direction.unitVector();
@@ -119,10 +132,14 @@ pub fn main() !void {
 
     // add spheres to world
     var world = World.init(spheres, allocator);
-    try world.add_sphere(Sphere.init(Point3.init(0.0, 0.0, -4.0), 1));
-    try world.add_sphere(Sphere.init(Point3.init(-2, 0.6, -3.5), 0.3));
-    try world.add_sphere(Sphere.init(Point3.init(2, -0.6, -3.25), 0.3));
-    try world.add_sphere(Sphere.init(Point3.init(1.5, 1.5, -4.0), 0.3));
+    // Gold sphere
+    try world.add_sphere(Sphere.init(Point3.init(0.0, 0.0, -4.0), 1, Material.initMetal(Color.init(0.937, 0.749, 0.016), 0.5)));
+    // Pink sphere
+    try world.add_sphere(Sphere.init(Point3.init(-2, 0.6, -3.5), 0.3, Material.initAmbertian(Color.init(1.000, 0.412, 0.706))));
+    // Water sphere
+    try world.add_sphere(Sphere.init(Point3.init(2, -0.6, -3.25), 0.3, Material.initDielectric(1.33)));
+    // Glass sphere
+    try world.add_sphere(Sphere.init(Point3.init(1.5, 1.5, -4.0), 0.3, Material.initDielectric(1.52)));
 
     var y: u32 = 0;
     while (y < image_height) : (y += 1) {

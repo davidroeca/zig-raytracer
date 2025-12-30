@@ -48,6 +48,14 @@ pub const Vec3 = struct {
         }
         return @This().init(self.x / magnitude, self.y / magnitude, self.z / magnitude);
     }
+
+    pub fn reflect(self: @This(), normal: @This()) @This() {
+        const normal_component_magnitude = self.dot(normal);
+        // Confirm that normal is length 1
+        const normal_length = normal.length();
+        // Take normal component magnitude and reverse it
+        return self.add(normal.mul(-2 * normal_component_magnitude / normal_length));
+    }
 };
 
 pub fn randomUnitVector(rng: std.Random) Vec3 {

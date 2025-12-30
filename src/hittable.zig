@@ -1,4 +1,6 @@
 const std = @import("std");
+const mat = @import("./material.zig");
+const Material = mat.Material;
 const vec3 = @import("./vec3.zig");
 const Vec3 = vec3.Vec3;
 const Point3 = vec3.Point3;
@@ -10,12 +12,14 @@ pub const HitRecord = struct {
     t: f64,
     point: Point3,
     normal: Vec3,
+    material: Material,
 
-    pub fn init(t: f64, point: Point3, normal: Vec3) @This() {
+    pub fn init(t: f64, point: Point3, normal: Vec3, material: Material) @This() {
         return @This(){
             .t = t,
             .point = point,
             .normal = normal,
+            .material = material,
         };
     }
 };
@@ -23,11 +27,13 @@ pub const HitRecord = struct {
 pub const Sphere = struct {
     center: Point3,
     radius: f64,
+    material: Material,
 
-    pub fn init(center: Point3, radius: f64) @This() {
+    pub fn init(center: Point3, radius: f64, material: Material) @This() {
         return @This(){
             .center = center,
             .radius = radius,
+            .material = material,
         };
     }
 
@@ -57,7 +63,7 @@ pub const Sphere = struct {
         const point = ray_.origin.add(ray_.direction.mul(t));
         const normal = point.sub(self.center).unitVector();
         // alter domain from [-1, 1] to [0, 1]
-        return HitRecord.init(t, point, normal);
+        return HitRecord.init(t, point, normal, self.material);
     }
 };
 
