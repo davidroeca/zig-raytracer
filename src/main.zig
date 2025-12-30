@@ -10,6 +10,8 @@ const Sphere = hittable.Sphere;
 const HitRecord = hittable.HitRecord;
 const World = hittable.World;
 
+const MAX_RAY_DEPTH: u8 = 50;
+
 fn hsvToRgb(h: f64, s: f64, v: f64) Color {
     // All values must be in [0, 1]
     const sector = @floor(h * 6.0);
@@ -41,10 +43,16 @@ fn hitSphere(center: Point3, radius: f64, ray_: Ray) ?HitRecord {
     return sphere.hit(ray_);
 }
 
-fn rayColor(world: World, ray_: Ray) Color {
+fn rayColor(world: World, ray_: Ray, depth: u8, rng: std.Random) Color {
+    if (depth > MAX_RAY_DEPTH) {
+        return Color.init(0.0, 0.0, 0.0);
+    }
     const opt_hit = world.hit(ray_);
     if (opt_hit) |hit| {
-        return hit.color;
+        const new_ray_vec = hit.normal.add(vec3.randomUnitVector(rng));
+        const new_ray_origin = hit.point.add(hit.normal.mul(0.001));
+        const bounced = Ray.init(new_ray_origin, new_ray_vec);
+        return rayColor(world, bounced, depth + 1, rng).mul(0.7);
     }
     // rainbow spiral
     const unit_direction = ray_.direction.unitVector();
@@ -67,13 +75,15 @@ pub fn main() !void {
     var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
     const stdout = &stdout_writer.interface;
 
+    // Set up random number generator
+    var prng = std.Random.DefaultPrng.init(420);
+    const rng = prng.random();
+
     const image_width = 600;
     const image_height = 800;
 
     // anti-aliasing
-    const samples_per_pixel = 10;
-    var prng = std.Random.DefaultPrng.init(420);
-    const rand = prng.random();
+    const samples_per_pixel = 20;
 
     const camera_position = Point3.init(0.0, 0.0, 0.0);
 
@@ -124,12 +134,13 @@ pub fn main() !void {
             while (i < samples_per_pixel) : (i += 1) {
                 const pixel_sample = first_pixel
                     .add(pixel_delta_u.mul(@as(f64, @floatFromInt(x))))
-                    .add(pixel_delta_u.mul(rand.float(f64)))
+                    .add(pixel_delta_u.mul(rng.float(f64)))
                     .add(pixel_delta_v.mul(@as(f64, @floatFromInt(y))))
-                    .add(pixel_delta_v.mul(rand.float(f64)));
+                    .add(pixel_delta_v.mul(rng.float(f64)));
                 const ray_direction = pixel_sample.sub(camera_position);
                 const pixel_ray = Ray.init(camera_position, ray_direction);
-                color = color.add(rayColor(world, pixel_ray));
+                const sample_color = rayColor(world, pixel_ray, 0, rng);
+                color = color.add(sample_color);
             }
             color = color.mul(1.0 / @as(f64, @floatFromInt(samples_per_pixel)));
             try writeColor(stdout, color);

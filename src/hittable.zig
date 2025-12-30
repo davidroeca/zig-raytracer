@@ -10,14 +10,12 @@ pub const HitRecord = struct {
     t: f64,
     point: Point3,
     normal: Vec3,
-    color: Color,
 
-    pub fn init(t: f64, point: Point3, normal: Vec3, color: Color) @This() {
+    pub fn init(t: f64, point: Point3, normal: Vec3) @This() {
         return @This(){
             .t = t,
             .point = point,
             .normal = normal,
-            .color = color,
         };
     }
 };
@@ -59,8 +57,7 @@ pub const Sphere = struct {
         const point = ray_.origin.add(ray_.direction.mul(t));
         const normal = point.sub(self.center).unitVector();
         // alter domain from [-1, 1] to [0, 1]
-        const color = (Color.init(1.0, 1.0, 1.0).add(normal)).mul(0.5);
-        return HitRecord.init(t, point, normal, color);
+        return HitRecord.init(t, point, normal);
     }
 };
 

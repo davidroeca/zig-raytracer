@@ -50,6 +50,10 @@ pub const Vec3 = struct {
     }
 };
 
+pub fn randomUnitVector(rng: std.Random) Vec3 {
+    return Vec3.init(rng.float(f64), rng.float(f64), rng.float(f64)).unitVector();
+}
+
 test "Vec3 addition" {
     const a = Vec3.init(1, 2, 3);
     const b = Vec3.init(4, 5, 6);
@@ -101,6 +105,16 @@ test "Vec3 unit vector" {
     try std.testing.expectApproxEqAbs(0.26726124, result.x, tolerance);
     try std.testing.expectApproxEqAbs(0.53452248, result.y, tolerance);
     try std.testing.expectApproxEqAbs(0.80178373, result.z, tolerance);
+}
+
+test "randomUnitVector" {
+    const prng = std.Random.DefaultPrng;
+    const rand = prng.random();
+    const my_unit = randomUnitVector(rand);
+    const my_unit2 = randomUnitVector(rand);
+    const tolerance = 0.00001;
+    try std.testing.expectApproxEqAbs(1.0, my_unit.length(), tolerance);
+    try std.testing.expectApproxEqAbs(1.0, my_unit2.length(), tolerance);
 }
 
 pub const Point3 = Vec3;
