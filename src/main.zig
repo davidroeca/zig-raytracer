@@ -70,6 +70,11 @@ pub fn main() !void {
     const image_width = 600;
     const image_height = 800;
 
+    // anti-aliasing
+    const samples_per_pixel = 10;
+    var prng = std.Random.DefaultPrng.init(420);
+    const rand = prng.random();
+
     const camera_position = Point3.init(0.0, 0.0, 0.0);
 
     const viewport_height = 2.0;
@@ -89,7 +94,7 @@ pub fn main() !void {
         .sub(Vec3.init(0.0, 0.0, focal_length))
         .sub(viewport_u.mul(0.5))
         .sub(viewport_v.mul(0.5));
-    const first_pixel = viewport_top_left.add(pixel_delta_u.mul(0.5)).add(pixel_delta_v.mul(0.5));
+    const first_pixel = viewport_top_left;
 
     try stdout.print("P3\n{d} {d}\n255\n", .{ image_width, image_height });
 
@@ -113,12 +118,20 @@ pub fn main() !void {
     while (y < image_height) : (y += 1) {
         var x: u32 = 0;
         while (x < image_width) : (x += 1) {
-            const pixel_center = first_pixel
-                .add(pixel_delta_u.mul(@as(f64, @floatFromInt(x))))
-                .add(pixel_delta_v.mul(@as(f64, @floatFromInt(y))));
-            const ray_direction = pixel_center.sub(camera_position);
-            const pixel_ray = Ray.init(camera_position, ray_direction);
-            const color = rayColor(world, pixel_ray);
+            // each will be divided by 100 to produce color
+            var color = Color.init(0.0, 0.0, 0.0);
+            var i: u32 = 0;
+            while (i < samples_per_pixel) : (i += 1) {
+                const pixel_sample = first_pixel
+                    .add(pixel_delta_u.mul(@as(f64, @floatFromInt(x))))
+                    .add(pixel_delta_u.mul(rand.float(f64)))
+                    .add(pixel_delta_v.mul(@as(f64, @floatFromInt(y))))
+                    .add(pixel_delta_v.mul(rand.float(f64)));
+                const ray_direction = pixel_sample.sub(camera_position);
+                const pixel_ray = Ray.init(camera_position, ray_direction);
+                color = color.add(rayColor(world, pixel_ray));
+            }
+            color = color.mul(1.0 / @as(f64, @floatFromInt(samples_per_pixel)));
             try writeColor(stdout, color);
         }
     }
