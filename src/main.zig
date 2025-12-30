@@ -1,4 +1,6 @@
 const std = @import("std");
+const camera = @import("./camera.zig");
+const Camera = camera.Camera;
 const vec3 = @import("./vec3.zig");
 const Vec3 = vec3.Vec3;
 const Point3 = vec3.Point3;
@@ -58,11 +60,7 @@ fn rayColor(world: World, ray_: Ray, depth: u8, rng: std.Random) Color {
                 depth + 1,
                 rng,
             );
-            return Color.init(
-                incoming_color.x * scatter.attenuation.x,
-                incoming_color.y * scatter.attenuation.y,
-                incoming_color.z * scatter.attenuation.z,
-            );
+            return incoming_color.mulVec(scatter.attenuation);
         }
         // Color completely absorbed
         return Color.init(0.0, 0.0, 0.0);
@@ -92,32 +90,21 @@ pub fn main() !void {
     var prng = std.Random.DefaultPrng.init(420);
     const rng = prng.random();
 
-    const image_width = 600;
-    const image_height = 800;
+    const image_width = 800;
+    const image_height = 600;
 
     // anti-aliasing
     const samples_per_pixel = 20;
 
-    const camera_position = Point3.init(0.0, 0.0, 0.0);
-
-    const viewport_height = 2.0;
-    const viewport_width = viewport_height * (@as(f64, @floatFromInt(image_width)) / @as(f64, @floatFromInt(image_height)));
-
-    const focal_length = 1.0; // distance from cam to location
-
-    const viewport_u = Vec3.init(viewport_width, 0.0, 0.0);
-    const viewport_v = Vec3.init(0.0, -viewport_height, 0.0);
-
-    // Vec differences per pixel
-    const pixel_delta_u = viewport_u.mul(1.0 / @as(f64, @floatFromInt(image_width)));
-    const pixel_delta_v = viewport_v.mul(1.0 / @as(f64, @floatFromInt(image_height)));
-
-    // Find upper right vec
-    const viewport_top_left = camera_position
-        .sub(Vec3.init(0.0, 0.0, focal_length))
-        .sub(viewport_u.mul(0.5))
-        .sub(viewport_v.mul(0.5));
-    const first_pixel = viewport_top_left;
+    const cam = Camera.init(
+        Point3.init(0.0, 0.0, 1.0),
+        Point3.init(0.0, 0.0, -2.0),
+        // 90 degree field of view
+        std.math.pi / 2.0,
+        @as(f64, @floatFromInt(image_width)) / @as(f64, @floatFromInt(image_height)),
+        0.01,
+        2.0,
+    );
 
     try stdout.print("P3\n{d} {d}\n255\n", .{ image_width, image_height });
 
@@ -133,13 +120,13 @@ pub fn main() !void {
     // add spheres to world
     var world = World.init(spheres, allocator);
     // Gold sphere
-    try world.add_sphere(Sphere.init(Point3.init(0.0, 0.0, -4.0), 1, Material.initMetal(Color.init(0.937, 0.749, 0.016), 0.5)));
+    try world.add_sphere(Sphere.init(Point3.init(0.0, 0.0, -3.0), 1, Material.initMetal(Color.init(0.937, 0.749, 0.016), 0.5)));
     // Pink sphere
-    try world.add_sphere(Sphere.init(Point3.init(-2, 0.6, -3.5), 0.3, Material.initAmbertian(Color.init(1.000, 0.412, 0.706))));
+    try world.add_sphere(Sphere.init(Point3.init(-1.3, 0.0, -1.5), 0.3, Material.initLambertian(Color.init(1.000, 0.412, 0.706))));
     // Water sphere
-    try world.add_sphere(Sphere.init(Point3.init(2, -0.6, -3.25), 0.3, Material.initDielectric(1.33)));
+    try world.add_sphere(Sphere.init(Point3.init(1.3, 0.0, -1.25), 0.3, Material.initDielectric(1.33)));
     // Glass sphere
-    try world.add_sphere(Sphere.init(Point3.init(1.5, 1.5, -4.0), 0.3, Material.initDielectric(1.52)));
+    try world.add_sphere(Sphere.init(Point3.init(1.3, 0.5, -2.0), 0.3, Material.initDielectric(1.52)));
 
     var y: u32 = 0;
     while (y < image_height) : (y += 1) {
@@ -149,13 +136,9 @@ pub fn main() !void {
             var color = Color.init(0.0, 0.0, 0.0);
             var i: u32 = 0;
             while (i < samples_per_pixel) : (i += 1) {
-                const pixel_sample = first_pixel
-                    .add(pixel_delta_u.mul(@as(f64, @floatFromInt(x))))
-                    .add(pixel_delta_u.mul(rng.float(f64)))
-                    .add(pixel_delta_v.mul(@as(f64, @floatFromInt(y))))
-                    .add(pixel_delta_v.mul(rng.float(f64)));
-                const ray_direction = pixel_sample.sub(camera_position);
-                const pixel_ray = Ray.init(camera_position, ray_direction);
+                const u = (@as(f64, @floatFromInt(x)) + rng.float(f64)) / @as(f64, @floatFromInt(image_width - 1));
+                const v = (@as(f64, @floatFromInt(y)) + rng.float(f64)) / @as(f64, @floatFromInt(image_height - 1));
+                const pixel_ray = cam.getRay(u, v, rng);
                 const sample_color = rayColor(world, pixel_ray, 0, rng);
                 color = color.add(sample_color);
             }

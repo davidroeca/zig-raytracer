@@ -34,7 +34,7 @@ pub const Material = union(enum) {
         refraction_index: f64,
     },
 
-    pub fn initAmbertian(albedo: Color) @This() {
+    pub fn initLambertian(albedo: Color) @This() {
         return @This(){ .lambertian = .{ .albedo = albedo } };
     }
 
@@ -49,7 +49,7 @@ pub const Material = union(enum) {
     pub fn scatter(self: @This(), ray_in: Ray, hit: HitRecord, rng: std.Random) ?Scatter {
         switch (self) {
             .lambertian => |lamb| {
-                const new_ray_vec = hit.normal.add(vec3.randomUnitVector(rng));
+                const new_ray_vec = hit.normal.add(vec3.randomUnitVector(rng)).unitVector();
                 const new_ray_origin = hit.point.add(hit.normal.mul(0.001));
                 const scattered = Ray.init(new_ray_origin, new_ray_vec);
                 return Scatter.init(lamb.albedo, scattered);

@@ -52,6 +52,14 @@ pub const Vec3 = struct {
         );
     }
 
+    pub fn mulVec(self: @This(), other: @This()) @This() {
+        return @This().init(
+            self.x * other.x,
+            self.y * other.y,
+            self.z * other.z,
+        );
+    }
+
     pub fn length(self: @This()) f64 {
         return @sqrt(self.x * self.x + self.y * self.y + self.z * self.z);
     }
@@ -75,7 +83,18 @@ pub const Vec3 = struct {
 };
 
 pub fn randomUnitVector(rng: std.Random) Vec3 {
-    return Vec3.init(rng.float(f64), rng.float(f64), rng.float(f64)).unitVector();
+    while (true) {
+        // numbers in [-1, 1]
+        const x = rng.float(f64) * 2.0 - 1.0;
+        const y = rng.float(f64) * 2.0 - 1.0;
+        const z = rng.float(f64) * 2.0 - 1.0;
+        const candidate = Vec3.init(x, y, z);
+        const length_squared = candidate.dot(candidate);
+        // Ensures good precision and within unit sphere for proper sampling
+        if (length_squared <= 1.0 and length_squared > 0.0001) {
+            return candidate.unitVector();
+        }
+    }
 }
 
 test "Vec3 addition" {
