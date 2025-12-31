@@ -17,7 +17,12 @@ pub const Vec3 = struct {
         self: @This(),
         writer: anytype,
     ) !void {
-        try writer.print("{s}({d}, {d}, {d})", .{ @typeName(@This()), self.x, self.y, self.z });
+        try writer.print("{s}({d}, {d}, {d})", .{
+            @typeName(@This()),
+            self.x,
+            self.y,
+            self.z,
+        });
     }
 
     pub fn add(self: @This(), other: @This()) @This() {
@@ -37,7 +42,11 @@ pub const Vec3 = struct {
     }
 
     pub fn mul(self: @This(), scalar: f64) @This() {
-        return @This().init(self.x * scalar, self.y * scalar, self.z * scalar);
+        return @This().init(
+            self.x * scalar,
+            self.y * scalar,
+            self.z * scalar,
+        );
     }
 
     pub fn dot(self: @This(), other: @This()) f64 {
@@ -70,7 +79,11 @@ pub const Vec3 = struct {
         if (magnitude == 0.0) {
             return @This().init(0.0, 0.0, 0.0);
         }
-        return @This().init(self.x / magnitude, self.y / magnitude, self.z / magnitude);
+        return @This().init(
+            self.x / magnitude,
+            self.y / magnitude,
+            self.z / magnitude,
+        );
     }
 
     pub fn reflect(self: @This(), normal: @This()) @This() {
@@ -78,7 +91,9 @@ pub const Vec3 = struct {
         // Confirm that normal is length 1
         const normal_length = normal.length();
         // Take normal component magnitude and reverse it
-        return self.add(normal.mul(-2 * normal_component_magnitude / normal_length));
+        return self.add(
+            normal.mul(-2 * normal_component_magnitude / normal_length),
+        );
     }
 };
 

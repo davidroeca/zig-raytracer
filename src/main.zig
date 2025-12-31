@@ -47,11 +47,13 @@ fn hitSphere(center: Point3, radius: f64, ray_: Ray) ?HitRecord {
     return sphere.hit(ray_);
 }
 
-fn rayColor(world: World, ray_: Ray, depth: u8, rng: std.Random) Color {
+fn rayColor(world: *World, ray_: Ray, depth: u8, rng: std.Random) Color {
+    const t_min = 0.001;
+    const t_max = std.math.inf(f64);
     if (depth > MAX_RAY_DEPTH) {
         return Color.init(0.0, 0.0, 0.0);
     }
-    const opt_hit = world.hit(ray_);
+    const opt_hit = world.hit(ray_, t_min, t_max);
     if (opt_hit) |hit| {
         if (hit.material.scatter(ray_, hit, rng)) |scatter| {
             const incoming_color = rayColor(
@@ -113,12 +115,9 @@ pub fn main() !void {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    // initialize spheres
-    var spheres: std.ArrayList(Sphere) = .{};
-    defer spheres.deinit(allocator);
-
     // add spheres to world
-    var world = World.init(spheres, allocator);
+    var world = try World.init(allocator, 4);
+    defer world.deinit();
     // Gold sphere
     try world.add_sphere(Sphere.init(Point3.init(0.0, 0.0, -3.0), 1, Material.initMetal(Color.init(0.937, 0.749, 0.016), 0.5)));
     // Pink sphere
@@ -127,6 +126,8 @@ pub fn main() !void {
     try world.add_sphere(Sphere.init(Point3.init(1.3, 0.0, -1.25), 0.3, Material.initDielectric(1.33)));
     // Glass sphere
     try world.add_sphere(Sphere.init(Point3.init(1.3, 0.5, -2.0), 0.3, Material.initDielectric(1.52)));
+
+    try world.buildBVH();
 
     var y: u32 = 0;
     while (y < image_height) : (y += 1) {
@@ -139,7 +140,7 @@ pub fn main() !void {
                 const u = (@as(f64, @floatFromInt(x)) + rng.float(f64)) / @as(f64, @floatFromInt(image_width - 1));
                 const v = (@as(f64, @floatFromInt(y)) + rng.float(f64)) / @as(f64, @floatFromInt(image_height - 1));
                 const pixel_ray = cam.getRay(u, v, rng);
-                const sample_color = rayColor(world, pixel_ray, 0, rng);
+                const sample_color = rayColor(&world, pixel_ray, 0, rng);
                 color = color.add(sample_color);
             }
             color = color.mul(1.0 / @as(f64, @floatFromInt(samples_per_pixel)));
