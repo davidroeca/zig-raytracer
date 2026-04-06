@@ -60,23 +60,40 @@ pub fn setupCamera(config: SceneConfig) Camera {
     return Camera.init(
         Point3.init(0.0, 0.0, 1.5),
         Point3.init(0.0, 0.0, -1.0),
-        // 60 degree field of view
-        std.math.pi / 3.0,
+        // 50 degree field of view
+        std.math.pi / 3.6,
         @as(f64, @floatFromInt(config.image_width)) / @as(f64, @floatFromInt(config.image_height)),
-        0.005,
-        2.5,
+        0.02,
+        4.0,
     );
 }
 
 pub fn setupWorld(allocator: std.mem.Allocator) !World {
-    var world = try World.init(allocator, 3);
+    var world = try World.init(allocator, 7);
     errdefer world.deinit();
+
+    // Ground plane (large sphere)
+    //try world.add_sphere(Sphere.init(Point3.init(0.0, -100.5, -1.0), 100.0, Material.initLambertian(Color.init(0.45, 0.55, 0.45))));
+
+    // Center: large polished metal sphere (silver)
+    try world.add_sphere(Sphere.init(Point3.init(0.0, 0.0, -3.0), 0.5, Material.initMetal(Color.init(0.8, 0.8, 0.85), 0.02)));
+    // Glass sphere sitting on top of the metal sphere
+    try world.add_sphere(Sphere.init(Point3.init(0.0, 0.85, -3.0), 0.35, Material.initDielectric(1.5)));
+
     // Left: matte terracotta sphere
-    try world.add_sphere(Sphere.init(Point3.init(-1.2, 0.0, -1.0), 0.5, Material.initLambertian(Color.init(0.8, 0.35, 0.2))));
-    // Center: gold metal sphere
-    try world.add_sphere(Sphere.init(Point3.init(0.0, 0.0, -1.2), 0.5, Material.initMetal(Color.init(0.85, 0.65, 0.1), 0.1)));
-    // Right: glass sphere
-    try world.add_sphere(Sphere.init(Point3.init(1.2, 0.0, -1.0), 0.5, Material.initDielectric(1.5)));
+    try world.add_sphere(Sphere.init(Point3.init(-1.0, 0.0, -1.5), 0.5, Material.initLambertian(Color.init(0.8, 0.35, 0.2))));
+
+    // Right: gold metal sphere
+    try world.add_sphere(Sphere.init(Point3.init(1.3, 0.0, -1.5), 0.5, Material.initMetal(Color.init(0.85, 0.65, 0.1), 0.1)));
+
+    // Far back: large matte blue sphere
+    try world.add_sphere(Sphere.init(Point3.init(-1.5, 0.3, -4.0), 0.8, Material.initLambertian(Color.init(0.15, 0.2, 0.55))));
+
+    // Small glass marble, front-left
+    try world.add_sphere(Sphere.init(Point3.init(-0.5, -0.3, -0.8), 0.2, Material.initDielectric(1.5)));
+
+    // Small polished copper sphere, front-right
+    try world.add_sphere(Sphere.init(Point3.init(0.7, -0.3, -0.7), 0.2, Material.initMetal(Color.init(0.9, 0.5, 0.3), 0.0)));
 
     try world.buildBVH();
     return world;
