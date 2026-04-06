@@ -11,7 +11,14 @@ const ray = @import("./ray.zig");
 const Ray = ray.Ray;
 const hittable = @import("./hittable.zig");
 const Sphere = hittable.Sphere;
+const Plane = hittable.Plane;
+const Box = hittable.Box;
+const Quad = hittable.Quad;
+const Disk = hittable.Disk;
+const Hittable = hittable.Hittable;
 pub const World = hittable.World;
+const tex = @import("./texture.zig");
+const Texture = tex.Texture;
 
 const MAX_RAY_DEPTH: u8 = 50;
 
@@ -69,11 +76,19 @@ pub fn setupCamera(config: SceneConfig) Camera {
 }
 
 pub fn setupWorld(allocator: std.mem.Allocator) !World {
-    var world = try World.init(allocator, 7);
+    var world = try World.init(allocator, 12);
     errdefer world.deinit();
 
-    // Ground plane (large sphere)
-    //try world.add_sphere(Sphere.init(Point3.init(0.0, -100.5, -1.0), 100.0, Material.initLambertian(Color.init(0.45, 0.55, 0.45))));
+    // Ground plane with checkerboard texture
+    try world.addObject(Hittable{ .plane = Plane.init(
+        Point3.init(0.0, -0.5, 0.0),
+        Vec3.init(0.0, 1.0, 0.0),
+        Material.initLambertianTextured(Texture.initCheckerboard(
+            Color.init(0.9, 0.9, 0.9),
+            Color.init(0.2, 0.2, 0.2),
+            2.0,
+        )),
+    ) });
 
     // Center: large polished metal sphere (silver)
     try world.add_sphere(Sphere.init(Point3.init(0.0, 0.0, -3.0), 0.5, Material.initMetal(Color.init(0.8, 0.8, 0.85), 0.02)));
@@ -94,6 +109,29 @@ pub fn setupWorld(allocator: std.mem.Allocator) !World {
 
     // Small polished copper sphere, front-right
     try world.add_sphere(Sphere.init(Point3.init(0.7, -0.3, -0.7), 0.2, Material.initMetal(Color.init(0.9, 0.5, 0.3), 0.0)));
+
+    // Axis-aligned box (pedestal)
+    try world.addObject(Hittable{ .box = Box.init(
+        Point3.init(1.8, -0.5, -2.8),
+        Point3.init(2.4, 0.1, -2.2),
+        Material.initLambertian(Color.init(0.6, 0.6, 0.65)),
+    ) });
+
+    // Disk resting on the box
+    try world.addObject(Hittable{ .disk = Disk.init(
+        Point3.init(2.1, 0.101, -2.5),
+        Vec3.init(0.0, 1.0, 0.0),
+        0.25,
+        Material.initMetal(Color.init(0.9, 0.75, 0.2), 0.05),
+    ) });
+
+    // Wall quad in the back
+    try world.addObject(Hittable{ .quad = Quad.init(
+        Point3.init(-3.0, -0.5, -5.0),
+        Vec3.init(6.0, 0.0, 0.0),
+        Vec3.init(0.0, 4.0, 0.0),
+        Material.initLambertian(Color.init(0.7, 0.7, 0.75)),
+    ) });
 
     try world.buildBVH();
     return world;

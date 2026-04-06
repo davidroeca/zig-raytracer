@@ -6,6 +6,8 @@ const hittable = @import("./hittable.zig");
 const HitRecord = hittable.HitRecord;
 const ray = @import("./ray.zig");
 const Ray = ray.Ray;
+const tex = @import("./texture.zig");
+pub const Texture = tex.Texture;
 
 // Consider alternatives to this approach
 const OUTSIDE_REFRACTION_INDEX = 1.0;
@@ -24,7 +26,7 @@ pub const Scatter = struct {
 
 pub const Material = union(enum) {
     lambertian: struct {
-        albedo: Color,
+        albedo: Texture,
     },
     metal: struct {
         albedo: Color,
@@ -35,6 +37,10 @@ pub const Material = union(enum) {
     },
 
     pub fn initLambertian(albedo: Color) @This() {
+        return @This(){ .lambertian = .{ .albedo = Texture.initSolid(albedo) } };
+    }
+
+    pub fn initLambertianTextured(albedo: Texture) @This() {
         return @This(){ .lambertian = .{ .albedo = albedo } };
     }
 
@@ -52,7 +58,7 @@ pub const Material = union(enum) {
                 const new_ray_vec = hit.normal.add(vec3.randomUnitVector(rng)).unitVector();
                 const new_ray_origin = hit.point.add(hit.normal.mul(0.001));
                 const scattered = Ray.init(new_ray_origin, new_ray_vec);
-                return Scatter.init(lamb.albedo, scattered);
+                return Scatter.init(lamb.albedo.value(hit.point), scattered);
             },
             .metal => |met| {
                 const reflected = ray_in.direction.reflect(hit.normal);
