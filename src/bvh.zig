@@ -70,7 +70,6 @@ pub const BVHNode = struct {
         }
         const num_objects = end - start;
         if (num_objects == 1) {
-            std.debug.print("start = {d}, end = {d}\n", .{ start, end });
             const node = try allocator.create(@This());
             node.* = @This(){
                 .bbox = objects[start].boundingBox(),
