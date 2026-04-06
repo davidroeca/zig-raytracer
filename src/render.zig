@@ -15,32 +15,6 @@ pub const World = hittable.World;
 
 const MAX_RAY_DEPTH: u8 = 50;
 
-fn hsvToRgb(h: f64, s: f64, v: f64) Color {
-    // All values must be in [0, 1]
-    const sector = @floor(h * 6.0);
-
-    // fractional part of sector
-    const f = h * 6.0 - sector;
-
-    const p = v * (1.0 - s);
-    const q = v * (1.0 - f * s);
-    const t = v * (1.0 - (1.0 - f) * s);
-
-    if (0.0 <= sector and sector < 1.0) {
-        return Color.init(v, t, p);
-    } else if (1.0 <= sector and sector < 2.0) {
-        return Color.init(q, v, p);
-    } else if (2.0 <= sector and sector < 3.0) {
-        return Color.init(p, v, t);
-    } else if (3.0 <= sector and sector < 4.0) {
-        return Color.init(p, q, v);
-    } else if (4.0 <= sector and sector < 5.0) {
-        return Color.init(t, p, v);
-    } else {
-        return Color.init(v, p, q);
-    }
-}
-
 fn rayColor(world: *World, ray_: Ray, depth: u8, rng: std.Random) Color {
     const t_min = 0.001;
     const t_max = std.math.inf(f64);
@@ -61,13 +35,12 @@ fn rayColor(world: *World, ray_: Ray, depth: u8, rng: std.Random) Color {
         // Color completely absorbed
         return Color.init(0.0, 0.0, 0.0);
     }
-    // rainbow spiral
+    // Sky gradient: warm white at horizon, deeper blue at zenith
     const unit_direction = ray_.direction.unitVector();
-    const normalized_angle = std.math.atan2(unit_direction.y, unit_direction.x) + std.math.pi;
-    // [0, 1]
-    const hue = normalized_angle / (2.0 * std.math.pi);
-    // Set ray color based on y direction of the ray
-    return hsvToRgb(hue, 1.0, 1.0);
+    const t = 0.5 * (unit_direction.y + 1.0);
+    const horizon = Color.init(1.0, 0.95, 0.85);
+    const zenith = Color.init(0.3, 0.5, 0.9);
+    return horizon.mul(1.0 - t).add(zenith.mul(t));
 }
 
 pub const SceneConfig = struct {
@@ -85,38 +58,38 @@ pub const default_config = SceneConfig{
 
 pub fn setupCamera(config: SceneConfig) Camera {
     return Camera.init(
-        Point3.init(0.0, 0.0, 1.0),
-        Point3.init(0.0, 0.0, -2.0),
-        // 90 degree field of view
-        std.math.pi / 2.0,
+        Point3.init(0.0, 0.0, 1.5),
+        Point3.init(0.0, 0.0, -1.0),
+        // 60 degree field of view
+        std.math.pi / 3.0,
         @as(f64, @floatFromInt(config.image_width)) / @as(f64, @floatFromInt(config.image_height)),
-        0.01,
-        2.0,
+        0.005,
+        2.5,
     );
 }
 
 pub fn setupWorld(allocator: std.mem.Allocator) !World {
-    // add spheres to world
-    var world = try World.init(allocator, 4);
+    var world = try World.init(allocator, 3);
     errdefer world.deinit();
-    // Gold sphere
-    try world.add_sphere(Sphere.init(Point3.init(0.0, 0.0, -3.0), 1, Material.initMetal(Color.init(0.937, 0.749, 0.016), 0.5)));
-    // Pink sphere
-    try world.add_sphere(Sphere.init(Point3.init(-1.3, 0.0, -1.5), 0.3, Material.initLambertian(Color.init(1.000, 0.412, 0.706))));
-    // Water sphere
-    try world.add_sphere(Sphere.init(Point3.init(1.3, 0.0, -1.25), 0.3, Material.initDielectric(1.33)));
-    // Glass sphere
-    try world.add_sphere(Sphere.init(Point3.init(1.3, 0.5, -2.0), 0.3, Material.initDielectric(1.52)));
+    // Left: matte terracotta sphere
+    try world.add_sphere(Sphere.init(Point3.init(-1.2, 0.0, -1.0), 0.5, Material.initLambertian(Color.init(0.8, 0.35, 0.2))));
+    // Center: gold metal sphere
+    try world.add_sphere(Sphere.init(Point3.init(0.0, 0.0, -1.2), 0.5, Material.initMetal(Color.init(0.85, 0.65, 0.1), 0.1)));
+    // Right: glass sphere
+    try world.add_sphere(Sphere.init(Point3.init(1.2, 0.0, -1.0), 0.5, Material.initDielectric(1.5)));
 
     try world.buildBVH();
     return world;
 }
 
-/// Render the scene into an RGBA pixel buffer.
-/// Buffer must be at least image_width * image_height * 4 bytes.
-pub fn renderToBuffer(
+/// Render a horizontal strip (rows y_start..y_end) into an RGBA buffer.
+/// Buffer must be at least image_width * (y_end - y_start) * 4 bytes.
+/// Pixel coordinates use the full image dimensions for correct ray generation.
+pub fn renderStrip(
     buffer: [*]u8,
     config: SceneConfig,
+    y_start: u32,
+    y_end: u32,
     world: *World,
     cam: Camera,
     rng: std.Random,
@@ -125,8 +98,8 @@ pub fn renderToBuffer(
     const image_height = config.image_height;
     const samples_per_pixel = config.samples_per_pixel;
 
-    var y: u32 = 0;
-    while (y < image_height) : (y += 1) {
+    var y: u32 = y_start;
+    while (y < y_end) : (y += 1) {
         var x: u32 = 0;
         while (x < image_width) : (x += 1) {
             // each will be divided by samples_per_pixel to produce color
@@ -141,11 +114,23 @@ pub fn renderToBuffer(
             }
             color = color.mul(1.0 / @as(f64, @floatFromInt(samples_per_pixel)));
 
-            const offset = (y * image_width + x) * 4;
+            const offset = ((y - y_start) * image_width + x) * 4;
             buffer[offset] = @intFromFloat(255.999 * color.x);
             buffer[offset + 1] = @intFromFloat(255.999 * color.y);
             buffer[offset + 2] = @intFromFloat(255.999 * color.z);
             buffer[offset + 3] = 255;
         }
     }
+}
+
+/// Render the full scene into an RGBA pixel buffer.
+/// Buffer must be at least image_width * image_height * 4 bytes.
+pub fn renderToBuffer(
+    buffer: [*]u8,
+    config: SceneConfig,
+    world: *World,
+    cam: Camera,
+    rng: std.Random,
+) void {
+    renderStrip(buffer, config, 0, config.image_height, world, cam, rng);
 }

@@ -27,7 +27,7 @@ pub fn build(b: *std.Build) void {
     });
     wasm.entry = .disabled;
     wasm.rdynamic = true;
-    b.installArtifact(wasm);
+    const install_wasm = b.addInstallArtifact(wasm, .{});
     const wasm_step = b.step("wasm", "Build WASM binary for browser");
-    wasm_step.dependOn(&wasm.step);
+    wasm_step.dependOn(&install_wasm.step);
 }

@@ -6,7 +6,7 @@ const samplesValue = document.getElementById('samples-value')
 const renderBtn = document.getElementById('render-btn')
 const status = document.getElementById('status')
 
-const worker = new Worker('worker.js')
+const workerCount = navigator.hardwareConcurrency || 4
 
 samplesInput.addEventListener('input', () => {
   samplesValue.textContent = samplesInput.value
@@ -14,31 +14,50 @@ samplesInput.addEventListener('input', () => {
 
 renderBtn.addEventListener('click', () => {
   renderBtn.disabled = true
-  status.textContent = 'Rendering...'
+
+  const width = canvas.width
+  const height = canvas.height
+  const samples = parseInt(samplesInput.value, 10)
+
+  // Swap to canvas on first render
+  prerendered.hidden = true
+  canvas.hidden = false
+
+  status.textContent = `Rendering with ${workerCount} threads...`
   const start = performance.now()
 
-  worker.postMessage({
-    type: 'render',
-    width: canvas.width,
-    height: canvas.height,
-    samples: parseInt(samplesInput.value, 10),
-  })
+  // Split image into horizontal strips
+  const stripHeight = Math.ceil(height / workerCount)
+  let completed = 0
 
-  worker.onmessage = (e) => {
-    if (e.data.type === 'done') {
-      // Swap pre-rendered image for live canvas on first render
-      prerendered.hidden = true
-      canvas.hidden = false
+  for (let i = 0; i < workerCount; i++) {
+    const yStart = i * stripHeight
+    const yEnd = Math.min(yStart + stripHeight, height)
+    const worker = new Worker('worker.js')
 
-      const imageData = new ImageData(
-        e.data.pixels,
-        e.data.width,
-        e.data.height,
-      )
-      ctx.putImageData(imageData, 0, 0)
-      const elapsed = ((performance.now() - start) / 1000).toFixed(2)
-      status.textContent = `Rendered in ${elapsed}s`
-      renderBtn.disabled = false
+    worker.postMessage({
+      type: 'renderStrip',
+      width,
+      height,
+      yStart,
+      yEnd,
+      samples,
+      seed: 420 + yStart,
+    })
+
+    worker.onmessage = (e) => {
+      if (e.data.type === 'stripDone') {
+        const stripData = new ImageData(e.data.pixels, width, e.data.yEnd - e.data.yStart)
+        ctx.putImageData(stripData, 0, e.data.yStart)
+        worker.terminate()
+        completed++
+
+        if (completed === workerCount) {
+          const elapsed = ((performance.now() - start) / 1000).toFixed(2)
+          status.textContent = `Rendered in ${elapsed}s (${workerCount} threads)`
+          renderBtn.disabled = false
+        }
+      }
     }
   }
 })
