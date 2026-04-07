@@ -105,7 +105,7 @@ pub fn setupWorld(allocator: std.mem.Allocator) !World {
     try world.add_sphere(Sphere.init(Point3.init(-1.5, 0.3, -4.0), 0.8, Material.initLambertian(Color.init(0.15, 0.2, 0.55))));
 
     // Small glass marble, front-left
-    try world.add_sphere(Sphere.init(Point3.init(-0.5, -0.3, -0.8), 0.4, Material.initDielectric(1.5)));
+    try world.add_sphere(Sphere.init(Point3.init(-0.5, -0.3, -0.8), 0.3, Material.initDielectric(1.5)));
 
     // Small polished copper sphere, front-right
     try world.add_sphere(Sphere.init(Point3.init(0.7, -0.3, -0.7), 0.2, Material.initMetal(Color.init(0.9, 0.5, 0.3), 0.0)));
