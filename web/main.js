@@ -20,7 +20,6 @@ renderBtn.addEventListener('click', () => {
   const width = canvas.width
   const height = canvas.height
   const samples = parseInt(samplesInput.value, 10)
-  console.log(samples)
 
   // Swap to canvas on first render
   prerendered.hidden = true

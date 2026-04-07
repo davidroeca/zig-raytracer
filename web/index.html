@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Zig Raytracer</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
     <style>
       body {
         margin: 0;
@@ -38,6 +44,25 @@
         font-size: 0.9rem;
         color: #aaa;
       }
+      .links {
+        margin-top: 1.5rem;
+        display: flex;
+        gap: 1.5rem;
+        font-size: 1.5rem;
+      }
+      .links a {
+        color: #aaa;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+      .links a:hover {
+        color: #eee;
+      }
+      .link-label {
+        font-size: 0.75rem;
+        vertical-align: middle;
+        margin-left: 0.25rem;
+      }
     </style>
   </head>
   <body>
@@ -62,6 +87,16 @@
     </div>
     <div id="status">
       Pre-rendered image. Click "Run in Browser" to render live with WASM.
+    </div>
+    <div class="links">
+      <a href="https://davidroeca.com" title="Home">
+        <i class="fa-solid fa-house" aria-hidden="true"></i>
+        <span class="link-label">davidroeca.com</span>
+      </a>
+      <a href="https://github.com/davidroeca/zig-raytracer" title="GitHub">
+        <i class="fa-brands fa-github" aria-hidden="true"></i>
+        <span class="link-label">GitHub</span>
+      </a>
     </div>
     <script src="main.js"></script>
   </body>
