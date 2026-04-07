@@ -7,18 +7,18 @@ const Ray = ray.Ray;
 const hittable = @import("./hittable.zig");
 const HitRecord = hittable.HitRecord;
 const World = hittable.World;
-const Sphere = hittable.Sphere;
+const Hittable = hittable.Hittable;
 
-fn compareX(_: void, a: Sphere, b: Sphere) bool {
-    return a.boundingBox().min.x < b.boundingBox().min.x;
+fn compareX(_: void, a: Hittable, b: Hittable) bool {
+    return a.boundingBox().?.min.x < b.boundingBox().?.min.x;
 }
 
-fn compareY(_: void, a: Sphere, b: Sphere) bool {
-    return a.boundingBox().min.y < b.boundingBox().min.y;
+fn compareY(_: void, a: Hittable, b: Hittable) bool {
+    return a.boundingBox().?.min.y < b.boundingBox().?.min.y;
 }
 
-fn compareZ(_: void, a: Sphere, b: Sphere) bool {
-    return a.boundingBox().min.z < b.boundingBox().min.z;
+fn compareZ(_: void, a: Hittable, b: Hittable) bool {
+    return a.boundingBox().?.min.z < b.boundingBox().?.min.z;
 }
 
 pub const BVHNode = struct {
@@ -39,27 +39,37 @@ pub const BVHNode = struct {
         }
         // If object index is set, this is a leaf
         if (self.*.object_index) |object_index| {
-            // Handle case if spheres ever get removed
-            if (object_index >= world.*.spheres.items.len) {
+            if (object_index >= world.*.objects.items.len) {
                 return null;
             }
-            return world.*.spheres.items[object_index].hit(ray_);
+            const hit_record = world.*.objects.items[object_index].hit(ray_);
+            if (hit_record) |hr| {
+                // Enforce t_min/t_max bounds: shape hit tests only check t > 0,
+                // so without this filter, scattered rays can self-intersect at
+                // tiny t values (below t_min), causing repeated bounces that
+                // exhaust max depth and produce black spots.
+                if (hr.t >= t_min and hr.t <= t_max) return hit_record;
+            }
+            return null;
         }
+        var closest: ?HitRecord = null;
+        var closest_t = t_max;
         if (self.*.left) |left| {
-            if (left.*.hit(ray_, t_min, t_max, world)) |hit_record| {
-                return hit_record;
+            if (left.*.hit(ray_, t_min, closest_t, world)) |hit_record| {
+                closest = hit_record;
+                closest_t = hit_record.t;
             }
         }
         if (self.*.right) |right| {
-            if (right.*.hit(ray_, t_min, t_max, world)) |hit_record| {
-                return hit_record;
+            if (right.*.hit(ray_, t_min, closest_t, world)) |hit_record| {
+                closest = hit_record;
             }
         }
-        return null;
+        return closest;
     }
 
     pub fn build(
-        objects: []Sphere,
+        objects: []Hittable,
         start: usize,
         end: usize,
         allocator: std.mem.Allocator,
@@ -70,10 +80,9 @@ pub const BVHNode = struct {
         }
         const num_objects = end - start;
         if (num_objects == 1) {
-            std.debug.print("start = {d}, end = {d}\n", .{ start, end });
             const node = try allocator.create(@This());
             node.* = @This(){
-                .bbox = objects[start].boundingBox(),
+                .bbox = objects[start].boundingBox().?,
                 .left = null,
                 .right = null,
                 .object_index = start,
@@ -82,14 +91,14 @@ pub const BVHNode = struct {
         } else if (num_objects == 2) {
             const left = try allocator.create(@This());
             left.* = @This(){
-                .bbox = objects[start].boundingBox(),
+                .bbox = objects[start].boundingBox().?,
                 .left = null,
                 .right = null,
                 .object_index = start,
             };
             const right = try allocator.create(@This());
             right.* = @This(){
-                .bbox = objects[start + 1].boundingBox(),
+                .bbox = objects[start + 1].boundingBox().?,
                 .left = null,
                 .right = null,
                 .object_index = start + 1,
@@ -109,19 +118,19 @@ pub const BVHNode = struct {
         // sort along axis
         switch (axis) {
             0 => std.mem.sort(
-                Sphere,
+                Hittable,
                 objects[start..end],
                 {},
                 compareX,
             ),
             1 => std.mem.sort(
-                Sphere,
+                Hittable,
                 objects[start..end],
                 {},
                 compareY,
             ),
             2 => std.mem.sort(
-                Sphere,
+                Hittable,
                 objects[start..end],
                 {},
                 compareZ,

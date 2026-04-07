@@ -1,0 +1,51 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: Build WASM
+        run: zig build wasm
+
+      - name: Build native and render PNG
+        run: |
+          zig build main > scene.ppm
+          convert scene.ppm scene.png
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp web/index.html web/main.js web/worker.js _site/
+          cp zig-out/bin/raytracer.wasm _site/
+          cp scene.png _site/
+
+      - uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ github.event.repository.html_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
