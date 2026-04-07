@@ -8,6 +8,7 @@ const ray = @import("./ray.zig");
 const Ray = ray.Ray;
 const tex = @import("./texture.zig");
 pub const Texture = tex.Texture;
+const constants = @import("./constants.zig");
 
 // Consider alternatives to this approach
 const OUTSIDE_REFRACTION_INDEX = 1.0;
@@ -55,8 +56,13 @@ pub const Material = union(enum) {
     pub fn scatter(self: @This(), ray_in: Ray, hit: HitRecord, rng: std.Random) ?Scatter {
         switch (self) {
             .lambertian => |lamb| {
-                const new_ray_vec = hit.normal.add(vec3.randomUnitVector(rng)).unitVector();
-                const new_ray_origin = hit.point.add(hit.normal.mul(0.001));
+                const scatter_dir = hit.normal.add(vec3.randomUnitVector(rng));
+                // Fall back to normal if scatter direction is degenerate (near-zero)
+                const new_ray_vec = if (scatter_dir.dot(scatter_dir) < constants.ZERO_TOLERANCE)
+                    hit.normal
+                else
+                    scatter_dir.unitVector();
+                const new_ray_origin = hit.point.add(hit.normal.mul(constants.SURFACE_OFFSET));
                 const scattered = Ray.init(new_ray_origin, new_ray_vec);
                 return Scatter.init(lamb.albedo.value(hit.point), scattered);
             },
@@ -67,7 +73,7 @@ pub const Material = union(enum) {
                     // reflection goes inward - ray absorbed
                     return null;
                 }
-                const new_ray_origin = hit.point.add(hit.normal.mul(0.001));
+                const new_ray_origin = hit.point.add(hit.normal.mul(constants.SURFACE_OFFSET));
                 const scattered = Ray.init(new_ray_origin, fuzzed);
                 return Scatter.init(met.albedo, scattered);
             },
@@ -81,12 +87,12 @@ pub const Material = union(enum) {
                     // reflect
                     if (radical_part < 0.0) {
                         const new_ray_vec = ray_in.direction.add(hit.normal.mul(2.0 * c));
-                        const new_ray_origin = hit.point.add(hit.normal.mul(0.001));
+                        const new_ray_origin = hit.point.add(hit.normal.mul(constants.SURFACE_OFFSET));
                         const scattered = Ray.init(new_ray_origin, new_ray_vec);
                         return Scatter.init(Color.init(1.0, 1.0, 1.0), scattered);
                     } else { // refract
                         const new_ray_vec = ray_in.direction.mul(r).add(hit.normal.mul(r * c - std.math.sqrt(radical_part)));
-                        const new_ray_origin = hit.point.add(hit.normal.mul(-0.001));
+                        const new_ray_origin = hit.point.add(hit.normal.mul(-constants.SURFACE_OFFSET));
                         const scattered = Ray.init(new_ray_origin, new_ray_vec);
                         return Scatter.init(Color.init(1.0, 1.0, 1.0), scattered);
                     }
@@ -98,12 +104,12 @@ pub const Material = union(enum) {
                     // reflect
                     if (radical_part < 0.0) {
                         const new_ray_vec = ray_in.direction.add(hit.normal.mul(2.0 * c));
-                        const new_ray_origin = hit.point.add(hit.normal.mul(-0.001));
+                        const new_ray_origin = hit.point.add(hit.normal.mul(-constants.SURFACE_OFFSET));
                         const scattered = Ray.init(new_ray_origin, new_ray_vec);
                         return Scatter.init(Color.init(1.0, 1.0, 1.0), scattered);
                     } else { // refract
                         const new_ray_vec = ray_in.direction.mul(r).add(hit.normal.mul(r * c - std.math.sqrt(radical_part)));
-                        const new_ray_origin = hit.point.add(hit.normal.mul(0.001));
+                        const new_ray_origin = hit.point.add(hit.normal.mul(constants.SURFACE_OFFSET));
                         const scattered = Ray.init(new_ray_origin, new_ray_vec);
                         return Scatter.init(Color.init(1.0, 1.0, 1.0), scattered);
                     }

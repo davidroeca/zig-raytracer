@@ -81,12 +81,12 @@ pub fn setupWorld(allocator: std.mem.Allocator) !World {
 
     // Ground plane with checkerboard texture
     try world.addObject(Hittable{ .plane = Plane.init(
-        Point3.init(0.0, -0.5, 0.0),
+        Point3.init(0.0, -1.5, 0.0),
         Vec3.init(0.0, 1.0, 0.0),
         Material.initLambertianTextured(Texture.initCheckerboard(
             Color.init(0.9, 0.9, 0.9),
             Color.init(0.2, 0.2, 0.2),
-            2.0,
+            1.0,
         )),
     ) });
 

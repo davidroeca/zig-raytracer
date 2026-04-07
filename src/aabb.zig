@@ -5,7 +5,7 @@ const vec3 = @import("./vec3.zig");
 const Point3 = vec3.Point3;
 const Vec3 = vec3.Vec3;
 
-const ZERO_TOLERANCE = 1e-8;
+const constants = @import("./constants.zig");
 
 pub const AABB = struct {
     min: Point3,
@@ -29,7 +29,7 @@ pub const AABB = struct {
         var t_far = t_max;
 
         for (0..3) |axis| {
-            if (@abs(dirs[axis]) < ZERO_TOLERANCE) {
+            if (@abs(dirs[axis]) < constants.ZERO_TOLERANCE) {
                 // Ray parallel to slab; miss if origin not within slab
                 if (origins[axis] < mins[axis] or origins[axis] > maxs[axis]) {
                     return false;

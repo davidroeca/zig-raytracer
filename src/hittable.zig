@@ -86,7 +86,7 @@ pub const Sphere = struct {
     }
 };
 
-const ZERO_TOLERANCE = 1e-8;
+const constants = @import("./constants.zig");
 
 pub const Plane = struct {
     point: Point3,
@@ -103,7 +103,7 @@ pub const Plane = struct {
 
     pub fn hit(self: @This(), ray_: Ray) ?HitRecord {
         const denom = ray_.direction.dot(self.normal);
-        if (@abs(denom) < ZERO_TOLERANCE) return null;
+        if (@abs(denom) < constants.ZERO_TOLERANCE) return null;
         const t = self.point.sub(ray_.origin).dot(self.normal) / denom;
         if (t < 0.0) return null;
         const point = ray_.origin.add(ray_.direction.mul(t));
@@ -142,7 +142,7 @@ pub const Box = struct {
         var entry_sign: f64 = -1.0;
 
         for (0..3) |axis| {
-            if (@abs(dirs[axis]) < ZERO_TOLERANCE) {
+            if (@abs(dirs[axis]) < constants.ZERO_TOLERANCE) {
                 // Ray parallel to slab; miss if origin not within slab
                 if (origins[axis] < mins[axis] or origins[axis] > maxs[axis]) {
                     return null;
@@ -207,7 +207,7 @@ pub const Quad = struct {
         const c1 = self.corner.add(self.u_edge);
         const c2 = self.corner.add(self.v_edge);
         const c3 = self.corner.add(self.u_edge).add(self.v_edge);
-        const pad = Vec3.init(ZERO_TOLERANCE, ZERO_TOLERANCE, ZERO_TOLERANCE);
+        const pad = Vec3.init(constants.ZERO_TOLERANCE, constants.ZERO_TOLERANCE, constants.ZERO_TOLERANCE);
         return AABB.init(
             Vec3.init(
                 @min(@min(c0.x, c1.x), @min(c2.x, c3.x)),
@@ -224,7 +224,7 @@ pub const Quad = struct {
 
     pub fn hit(self: @This(), ray_: Ray) ?HitRecord {
         const denom = ray_.direction.dot(self.normal);
-        if (@abs(denom) < ZERO_TOLERANCE) return null;
+        if (@abs(denom) < constants.ZERO_TOLERANCE) return null;
         const t = self.corner.sub(ray_.origin).dot(self.normal) / denom;
         if (t < 0.0) return null;
 
@@ -280,7 +280,7 @@ pub const Disk = struct {
 
     pub fn hit(self: @This(), ray_: Ray) ?HitRecord {
         const denom = ray_.direction.dot(self.normal);
-        if (@abs(denom) < ZERO_TOLERANCE) return null;
+        if (@abs(denom) < constants.ZERO_TOLERANCE) return null;
         const t = self.center.sub(ray_.origin).dot(self.normal) / denom;
         if (t < 0.0) return null;
 

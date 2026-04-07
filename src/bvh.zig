@@ -42,7 +42,15 @@ pub const BVHNode = struct {
             if (object_index >= world.*.objects.items.len) {
                 return null;
             }
-            return world.*.objects.items[object_index].hit(ray_);
+            const hit_record = world.*.objects.items[object_index].hit(ray_);
+            if (hit_record) |hr| {
+                // Enforce t_min/t_max bounds: shape hit tests only check t > 0,
+                // so without this filter, scattered rays can self-intersect at
+                // tiny t values (below t_min), causing repeated bounces that
+                // exhaust max depth and produce black spots.
+                if (hr.t >= t_min and hr.t <= t_max) return hit_record;
+            }
+            return null;
         }
         var closest: ?HitRecord = null;
         var closest_t = t_max;
