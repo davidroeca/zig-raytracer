@@ -2,5 +2,6 @@ zig-out/
 .zig-cache/
 output/
 
-# compiled wasm
-*.wasm
+# compiled assets
+web/*.wasm
+web/scene.png

@@ -8,6 +8,8 @@ const status = document.getElementById('status')
 
 const workerCount = navigator.hardwareConcurrency || 4
 
+samplesValue.textContent = samplesInput.value
+
 samplesInput.addEventListener('input', () => {
   samplesValue.textContent = samplesInput.value
 })
@@ -18,6 +20,7 @@ renderBtn.addEventListener('click', () => {
   const width = canvas.width
   const height = canvas.height
   const samples = parseInt(samplesInput.value, 10)
+  console.log(samples)
 
   // Swap to canvas on first render
   prerendered.hidden = true

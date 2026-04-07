@@ -18,6 +18,9 @@
       }
       canvas {
         border: 1px solid #444;
+      }
+      img#prerendered,
+      .canvas {
         max-width: 90vw;
       }
       .controls {
@@ -45,15 +48,16 @@
         src="scene.png"
         alt="Pre-rendered raytracer scene"
         width="800"
-        height="600"
+        height="auto"
       />
       <canvas id="canvas" width="800" height="600" hidden></canvas>
     </div>
     <div class="controls">
       <label>
-        Samples: <input type="range" id="samples" min="1" max="200" value="20"/>
+        Samples:&nbsp;
+        <input type="range" id="samples" min="1" max="200" value="20" />
       </label>
-      <span id="samples-value">20</span>
+      <span id="samples-value"></span>
       <button id="render-btn">Run in Browser</button>
     </div>
     <div id="status">
