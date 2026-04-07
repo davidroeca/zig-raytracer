@@ -24,6 +24,10 @@ jobs:
         with:
           version: 0.15.2
 
+      - name: Install deps
+        run:
+          sudo apt-get update && sudo apt-get install -y imagemagick
+
       - name: Build WASM
         run: zig build wasm
 
