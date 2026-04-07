@@ -105,21 +105,21 @@ pub fn setupWorld(allocator: std.mem.Allocator) !World {
     try world.add_sphere(Sphere.init(Point3.init(-1.5, 0.3, -4.0), 0.8, Material.initLambertian(Color.init(0.15, 0.2, 0.55))));
 
     // Small glass marble, front-left
-    try world.add_sphere(Sphere.init(Point3.init(-0.5, -0.3, -0.8), 0.2, Material.initDielectric(1.5)));
+    try world.add_sphere(Sphere.init(Point3.init(-0.5, -0.3, -0.8), 0.4, Material.initDielectric(1.5)));
 
     // Small polished copper sphere, front-right
     try world.add_sphere(Sphere.init(Point3.init(0.7, -0.3, -0.7), 0.2, Material.initMetal(Color.init(0.9, 0.5, 0.3), 0.0)));
 
     // Axis-aligned box (pedestal)
     try world.addObject(Hittable{ .box = Box.init(
-        Point3.init(1.8, -0.5, -2.8),
-        Point3.init(2.4, 0.1, -2.2),
+        Point3.init(-0.2, -1.6, -2.8),
+        Point3.init(0.4, -1.0, -2.2),
         Material.initLambertian(Color.init(0.6, 0.6, 0.65)),
     ) });
 
     // Disk resting on the box
     try world.addObject(Hittable{ .disk = Disk.init(
-        Point3.init(2.1, 0.101, -2.5),
+        Point3.init(0.1, -0.99, -2.5),
         Vec3.init(0.0, 1.0, 0.0),
         0.25,
         Material.initMetal(Color.init(0.9, 0.75, 0.2), 0.05),
