@@ -44,17 +44,20 @@ pub const BVHNode = struct {
             }
             return world.*.objects.items[object_index].hit(ray_);
         }
+        var closest: ?HitRecord = null;
+        var closest_t = t_max;
         if (self.*.left) |left| {
-            if (left.*.hit(ray_, t_min, t_max, world)) |hit_record| {
-                return hit_record;
+            if (left.*.hit(ray_, t_min, closest_t, world)) |hit_record| {
+                closest = hit_record;
+                closest_t = hit_record.t;
             }
         }
         if (self.*.right) |right| {
-            if (right.*.hit(ray_, t_min, t_max, world)) |hit_record| {
-                return hit_record;
+            if (right.*.hit(ray_, t_min, closest_t, world)) |hit_record| {
+                closest = hit_record;
             }
         }
-        return null;
+        return closest;
     }
 
     pub fn build(
