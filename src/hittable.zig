@@ -11,6 +11,8 @@ const aabb = @import("./aabb.zig");
 const AABB = aabb.AABB;
 const bvh = @import("./bvh.zig");
 const BVHNode = bvh.BVHNode;
+const light = @import("./light.zig");
+const PointLight = light.PointLight;
 
 pub const HitRecord = struct {
     t: f64,
@@ -324,16 +326,27 @@ pub const Hittable = union(enum) {
 pub const World = struct {
     objects: std.ArrayList(Hittable),
     unbounded: std.ArrayList(Hittable),
+    lights: std.ArrayList(PointLight),
     bvh_root: ?*BVHNode,
     allocator: std.mem.Allocator,
     bvh_dirty: bool,
 
-    pub fn init(allocator: std.mem.Allocator, capacity: usize) !@This() {
-        const objects = try std.ArrayList(Hittable).initCapacity(allocator, capacity);
-        const unbounded = try std.ArrayList(Hittable).initCapacity(allocator, 4);
+    pub fn init(
+        allocator: std.mem.Allocator,
+        object_capacity: usize,
+        unbounded_capacity: usize,
+        light_capacity: usize,
+    ) !@This() {
+        var objects = try std.ArrayList(Hittable).initCapacity(allocator, object_capacity);
+        errdefer objects.deinit(allocator);
+        var unbounded = try std.ArrayList(Hittable).initCapacity(allocator, unbounded_capacity);
+        errdefer unbounded.deinit(allocator);
+        var lights = try std.ArrayList(PointLight).initCapacity(allocator, light_capacity);
+        errdefer lights.deinit(allocator);
         return @This(){
             .objects = objects,
             .unbounded = unbounded,
+            .lights = lights,
             .bvh_root = null,
             .allocator = allocator,
             .bvh_dirty = false,
@@ -363,6 +376,10 @@ pub const World = struct {
         }
     }
 
+    pub fn addLight(self: *@This(), light_: PointLight) !void {
+        try self.lights.append(self.allocator, light_);
+    }
+
     pub fn addObject(self: *@This(), object: Hittable) !void {
         if (object.boundingBox() != null) {
             try self.objects.append(self.allocator, object);
@@ -370,10 +387,6 @@ pub const World = struct {
             try self.unbounded.append(self.allocator, object);
         }
         self.bvh_dirty = true;
-    }
-
-    pub fn add_sphere(self: *@This(), sphere: Sphere) !void {
-        try self.addObject(Hittable{ .sphere = sphere });
     }
 
     pub fn hit(self: *@This(), ray_: Ray, t_min: f64, t_max: f64) ?HitRecord {
