@@ -57,11 +57,13 @@ pub const Material = union(enum) {
         switch (self) {
             .lambertian => |lamb| {
                 const scatter_dir = hit.normal.add(vec3.randomUnitVector(rng));
-                // Fall back to normal if scatter direction is degenerate (near-zero)
+                // Fall back to normal if scatter direction is degenerate (near-zero).
+                // Do NOT normalize: normal + randomUnitVector produces a natural
+                // cosine-weighted distribution; normalizing destroys it and adds noise.
                 const new_ray_vec = if (scatter_dir.dot(scatter_dir) < constants.ZERO_TOLERANCE)
                     hit.normal
                 else
-                    scatter_dir.unitVector();
+                    scatter_dir;
                 const new_ray_origin = hit.point.add(hit.normal.mul(constants.SURFACE_OFFSET));
                 const scattered = Ray.init(new_ray_origin, new_ray_vec);
                 return Scatter.init(lamb.albedo.value(hit.point), scattered);
@@ -101,14 +103,14 @@ pub const Material = union(enum) {
                     // Flip c in this environment
                     const c = ray_normal_dot;
                     const radical_part = (1.0 - r * r * (1 - c * c));
-                    // reflect
+                    // reflect (TIR) - use inward normal (-hit.normal)
                     if (radical_part < 0.0) {
-                        const new_ray_vec = ray_in.direction.add(hit.normal.mul(2.0 * c));
+                        const new_ray_vec = ray_in.direction.add(hit.normal.mul(-2.0 * c));
                         const new_ray_origin = hit.point.add(hit.normal.mul(-constants.SURFACE_OFFSET));
                         const scattered = Ray.init(new_ray_origin, new_ray_vec);
                         return Scatter.init(Color.init(1.0, 1.0, 1.0), scattered);
-                    } else { // refract
-                        const new_ray_vec = ray_in.direction.mul(r).add(hit.normal.mul(r * c - std.math.sqrt(radical_part)));
+                    } else { // refract - normal component sign is negated vs entry case
+                        const new_ray_vec = ray_in.direction.mul(r).add(hit.normal.mul(std.math.sqrt(radical_part) - r * c));
                         const new_ray_origin = hit.point.add(hit.normal.mul(constants.SURFACE_OFFSET));
                         const scattered = Ray.init(new_ray_origin, new_ray_vec);
                         return Scatter.init(Color.init(1.0, 1.0, 1.0), scattered);
